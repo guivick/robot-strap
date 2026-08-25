@@ -47,9 +47,9 @@ def ler_arquivo(arquivo):
 
 # Leitura do arquivo
 
-# Upload do arquivo com Streamlit
 st.title("Robot → STRAP")
 st.subheader("Conversão de reações e ações do Robot para comandos do STRAP")
+
 arquivo = st.file_uploader(
     "Selecione o arquivo exportado do Robot",
     type=["csv", "txt"]
@@ -58,26 +58,67 @@ arquivo = st.file_uploader(
 if arquivo is None:
     st.stop()
 
-arquivo.seek(0)
 
-texto = ler_arquivo(arquivo)
+# Detecta a codificação do arquivo
+dados = arquivo.getvalue()
+
+codificacoes = [
+    "utf-8-sig",
+    "utf-8",
+    "utf-16",
+    "utf-16-le",
+    "utf-16-be",
+    "cp1252",
+    "latin1"
+]
+
+texto = None
+encoding_usado = None
+
+for encoding in codificacoes:
+    try:
+        texto = dados.decode(encoding)
+        encoding_usado = encoding
+        break
+    except UnicodeDecodeError:
+        continue
+
+if texto is None:
+    st.error("Não foi possível identificar a codificação do arquivo.")
+    st.stop()
+
+
+# Procura a primeira linha vazia
+linha_vazia = None
 
 for i, linha in enumerate(texto.splitlines()):
-    if linha.strip("; \n\r\t") == "":
+
+    # Remove espaços, aspas e separadores ;
+    conteudo = linha.strip().strip('"').strip("; \n\r\t")
+
+    if conteudo == "":
         linha_vazia = i
         break
 
+# Caso não encontre uma linha vazia
+if linha_vazia is None:
+    st.error(
+        "Não foi encontrada uma linha vazia ou uma linha contendo apenas ';' "
+        "no arquivo."
+    )
+    st.stop()
+
+
+# Lê o CSV
+arquivo.seek(0)
+
 df_robot = pd.read_csv(
     io.StringIO(texto),
+    encoding=encoding_usado,
     sep=r'[;/]',
     nrows=linha_vazia - 1,
     engine="python"
 )
-
-arquivo.seek(0)
-
-df_robot = pd.read_csv(arquivo, encoding="utf-16", sep=r'[;/]', nrows=linha_vazia-1, engine='python')
-
 # Transformação de coordenadas e unidades
 # Coordenadas
 opcoes_eixo = ["X", "-X", "Y", "-Y", "Z", "-Z"]
