@@ -27,7 +27,23 @@ def conversor_momento(unidade_entrada_forca, unidade_saida_forca, unidade_entrad
     [unidade_entrada_forca]*[unidade_entrada_dist] e [unidade_saida_forca]*[unidade_saida_dist]
     """
     return conversor_forca(unidade_entrada_forca, unidade_saida_forca)*conversor_distancia(unidade_entrada_dist, unidade_saida_dist)
+    
+def ler_arquivo(arquivo):
+    dados = arquivo.getvalue()
 
+    for encoding in ["utf-8-sig", "utf-8", "cp1252", "utf-16", "latin1"]:
+        try:
+            return dados.decode(encoding)
+        except UnicodeDecodeError:
+            continue
+
+    raise UnicodeDecodeError(
+        "unknown",
+        b"",
+        0,
+        1,
+        "Não foi possível identificar a codificação do arquivo."
+    )
 
 # Leitura do arquivo
 
@@ -44,12 +60,19 @@ if arquivo is None:
 
 arquivo.seek(0)
 
-for i, linha in enumerate(
-    arquivo.getvalue().decode("utf-16").splitlines()
-):
+texto = ler_arquivo(arquivo)
+
+for i, linha in enumerate(texto.splitlines()):
     if linha.strip("; \n\r\t") == "":
         linha_vazia = i
         break
+
+df_robot = pd.read_csv(
+    io.StringIO(texto),
+    sep=r'[;/]',
+    nrows=linha_vazia - 1,
+    engine="python"
+)
 
 arquivo.seek(0)
 
