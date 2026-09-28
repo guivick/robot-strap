@@ -119,6 +119,10 @@ df_robot = pd.read_csv(
     nrows=linha_vazia - 1,
     engine="python"
 )
+
+if "Mode" in df_robot.columns:
+    df_robot = df_robot.drop(columns="Mode")
+    
 # Transformação de coordenadas e unidades
 # Coordenadas
 opcoes_eixo = ["X", "-X", "Y", "-Y", "Z", "-Z"]
